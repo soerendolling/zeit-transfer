@@ -49,7 +49,8 @@ jobs:
         if [ -f download_history.json ]; then
             git config --global user.name 'GitHub Action'
             git config --global user.email 'action@github.com'
-            git add download_history.json
+            # Use -f to force add because it is in .gitignore
+            git add -f download_history.json
             git diff --quiet && git diff --staged --quiet || (git commit -m "Update download history [skip ci]" && git push)
         else
             echo "No history file found to commit."
