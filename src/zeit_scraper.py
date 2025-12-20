@@ -11,13 +11,14 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 class ZeitScraper:
-    def __init__(self, username, password, login_url, download_url, download_dir="temp", history_file="download_history.json"):
+    def __init__(self, username, password, login_url, download_url, download_dir="temp", history_file="download_history.json", test_mode=False):
         self.username = username
         self.password = password
         self.login_url = login_url
         self.download_url = download_url
         self.download_dir = os.path.abspath(download_dir)
         self.history_file = history_file
+        self.test_mode = test_mode
         self.logger = logging.getLogger(__name__)
 
         if not os.path.exists(self.download_dir):
@@ -80,27 +81,31 @@ class ZeitScraper:
             # --- Login Phase ---
             self.logger.info(f"Navigating to login page: {self.login_url}")
             driver.get(self.login_url)
-            time.sleep(3)
+            # Remove static sleep, wait for username or active session indicator
 
             # Detect Login State
             needs_login = False
             try:
-                if len(driver.find_elements(By.CSS_SELECTOR, "input#username")) > 0:
-                    needs_login = True
-                    self.logger.info("Login form detected.")
+                # Wait up to 5s for either username OR logout button
+                login_or_account = WebDriverWait(driver, 5).until(
+                   EC.presence_of_element_located((By.XPATH, "//*[@id='username'] | //*[contains(text(), 'Abmelden')] | //*[contains(text(), 'Konto')]"))
+                )
+                
+                # Check what we found
+                if login_or_account.get_attribute("id") == "username":
+                     needs_login = True
+                     self.logger.info("Login form detected.")
                 else:
-                    self.logger.info("Login form NOT found. Checking for active session indicators...")
-                    if len(driver.find_elements(By.XPATH, "//*[contains(text(), 'Abmelden') or contains(text(), 'Konto')]")) > 0:
-                        self.logger.info("Active session detected.")
-                        needs_login = False
-                    else:
-                        needs_login = True
+                     self.logger.info("Active session detected.")
+                     needs_login = False
             except:
+                # Fallback
+                self.logger.info("Login state unclear, assuming login needed.")
                 needs_login = True
 
             if needs_login:
                 try:
-                    cookie_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[title='Zustimmen']")))
+                    cookie_btn = WebDriverWait(driver, 3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[title='Zustimmen']")))
                     cookie_btn.click()
                 except:
                     pass
@@ -117,12 +122,15 @@ class ZeitScraper:
                     pass_input.clear()
                     pass_input.send_keys(self.password)
                     
-                    time.sleep(1)
+                    # Submit
                     login_btn = driver.find_element(By.CSS_SELECTOR, "#kc-login")
                     login_btn.click()
-                    
                     self.logger.info("Credentials submitted.")
-                    time.sleep(5)
+
+                    # Wait for redirect/success instead of sleep
+                    WebDriverWait(driver, 15).until(
+                        EC.invisibility_of_element_located((By.CSS_SELECTOR, "#kc-login"))
+                    )
                 except Exception as e:
                     self.logger.error(f"Login interaction failed: {e}")
                     self.take_screenshot(driver, "zeit_login_failed")
@@ -131,22 +139,23 @@ class ZeitScraper:
             # --- Check Issue Date & Navigate ---
             self.logger.info(f"Navigating to download URL: {self.download_url}")
             driver.get(self.download_url)
-            time.sleep(3)
             
             current_issue_id = None
             
+            # 1. Wait for ANY key element to be present (button or title) to ensure page load
+            try:
+                # Look for "Aktuelle Ausgabe" or just generic body check
+                WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+            except:
+                pass
+
             # 1. Find "ZUR AKTUELLEN AUSGABE" button
-            # HTML: <a href="/abo/diezeit/17.12.2025" ...>ZUR AKTUELLEN AUSGABE</a>
-            
             issue_btn = None
             try:
-                # Try explicit text match (case insensitive approach with translate() in xpath is verbose, using contains() is easier)
-                # We look for "AKTUELLEN AUSGABE" to be safe
+                # Try explicit text match
                 issue_btn = driver.find_element(By.XPATH, "//a[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'aktuellen ausgabe')]")
             except:
                 try:
-                    # Fallback to class search if text fails?
-                    # "btn btn-danger" might be too generic, but combined with context it could work
                     issue_btn = driver.find_element(By.CSS_SELECTOR, "a.btn-danger")
                 except:
                     pass
@@ -175,7 +184,9 @@ class ZeitScraper:
                 history = self.load_history()
                 last_processed = history.get('last_issue_id')
                 
-                if last_processed == current_issue_id:
+                if self.test_mode:
+                    self.logger.info(f"Test Mode: Ignoring history check (Issue {current_issue_id} vs Last {last_processed})")
+                elif last_processed == current_issue_id:
                     self.logger.info(f"Skipping: Issue {current_issue_id} already processed.")
                     return "SKIPPED"
             
@@ -183,26 +194,24 @@ class ZeitScraper:
             if issue_btn and issue_btn.is_displayed():
                 self.logger.info("Clicking 'ZUR AKTUELLEN AUSGABE'...")
                 issue_btn.click()
-                time.sleep(5)
             
             # --- Find EPUB Download ---
-            # HTML: <a class="..." ...> EPUB FÜR E-READER LADEN </a>
             self.logger.info("Looking for 'EPUB FÜR E-READER LADEN'...")
             
             try:
-                # 1. Specific Text Search
-                # xpath contains text 'EPUB FÜR E-READER LADEN' (case insensitive match for safety)
-                xpath_text = "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'epub für e-reader laden')]"
+                # 1. Simple Text Search "EPUB" (Fastest)
+                xpath_text = "//*[contains(text(), 'EPUB')]"
                 
                 epub_link = wait.until(EC.element_to_be_clickable((By.XPATH, xpath_text)))
                 self.logger.info("Found EPUB link via text. Clicking...")
                 epub_link.click()
                 
             except:
-                self.logger.warning("Specific text link not found. Trying backup selectors...")
+                self.logger.warning("Simple 'EPUB' text link not found. Trying specific text...")
                 try:
-                    # 2. Try just "EPUB" text
-                    epub_link = driver.find_element(By.XPATH, "//*[contains(text(), 'EPUB')]")
+                    # 2. Specific Backup if "EPUB" is too generic (unlikely)
+                    xpath_text = "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'epub für e-reader laden')]"
+                    epub_link = driver.find_element(By.XPATH, xpath_text)
                     epub_link.click()
                 except:
                     self.logger.error("Could not find EPUB link.")
@@ -224,12 +233,14 @@ class ZeitScraper:
                         if not crdownloads:
                             downloaded_file = latest_epub
                             break
-                time.sleep(1)
+                time.sleep(0.5) # reduced check interval
             
             if downloaded_file:
                 self.logger.info(f"Download complete: {downloaded_file}")
-                if current_issue_id:
+                if current_issue_id and not self.test_mode:
                     self.save_history(current_issue_id)
+                elif self.test_mode:
+                    self.logger.info("Test Mode: Not updating history file.")
                 return downloaded_file
             else:
                 self.logger.error("Download timed out.")

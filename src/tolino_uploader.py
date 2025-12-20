@@ -45,103 +45,103 @@ class TolinoUploader:
             self.logger.info(f"Navigating to {self.login_url}")
             driver.get(self.login_url)
             
-            # Allow time for initial load
-            time.sleep(5)
-            
-            # Assume NOT logged in by default for fresh sessions
-            # We will only skip login if we find a POSITIVE indicator of being logged in (like a user avatar), not just a lack of login button
+            # Smart check for login state
+            # Wait for either 'Deutschland' (not logged in) OR 'Library Menu' (logged in)
             is_logged_in = False
-            
-            # Try to find positive login indicator (e.g. avatar or My Books link that works)
-            # For now, let's just proceed to Login Flow. The logic below handles "Country selection not found" if we are somehow logged in.
-            
-            self.logger.info("Performing Login Sequence...")
-
-            # 1. Country Selection
-            self.logger.info("Looking for Country Selection...")
             try:
-                # Wait explicitly for it, but shorten timeout if it might be skipped
-                de_btn = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Deutschland')]")))
-                de_btn.click()
-                self.logger.info("Clicked 'Deutschland'.")
-            except:
-                self.logger.info("Country selection not found (maybe already selected or different flow).")
-
-            # 2. Provider "Thalia DE"
-            self.logger.info("Looking for Provider 'Thalia DE'...")
-            try:
-                 time.sleep(2)
-                 thalia_img = wait.until(EC.presence_of_element_located((By.XPATH, "//img[@alt='Thalia DE']")))
-                 try:
-                     thalia_img.click()
-                 except:
-                     thalia_img.find_element(By.XPATH, "./..").click()
-                 self.logger.info("Clicked 'Thalia DE'.")
-            except:
-                 self.logger.info("Provider selection not found (maybe already on login form).")
-
-            # 3. Thalia Login Form
-            self.logger.info("Waiting for Login Form...")
-            time.sleep(5)
-            
-            # Handle 'Anmelden' landing page button (Thalia interstitial)
-            try:
-                anmelden_landing = driver.find_element(By.XPATH, "//*[contains(text(), 'Anmelden')]")
-                if anmelden_landing.is_displayed():
-                    anmelden_landing.click()
-                    time.sleep(2)
+                # Give it a moment to load
+                wait.until(EC.presence_of_element_located((By.TAG_NAME, "body")))
+                
+                # Check for indicators
+                if len(driver.find_elements(By.CSS_SELECTOR, "button[data-test-id='library-headerBar-overflowMenu-button']")) > 0:
+                     is_logged_in = True
+                     self.logger.info("Already logged in (Menu found).")
             except:
                 pass
             
-            # Enter Credentials
-            try:
-                user_input = wait.until(EC.element_to_be_clickable((By.XPATH, "//input[@name='username' or @name='email' or @type='email']")))
-                user_input.click()
-                user_input.clear()
-                user_input.send_keys(self.username)
-                
-                try:
-                    pass_input = driver.find_element(By.CSS_SELECTOR, "input[type='password']")
-                except:
-                    user_input.send_keys(Keys.RETURN)
-                    time.sleep(2)
-                    pass_input = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[type='password']")))
-                
-                pass_input.click()
-                pass_input.clear()
-                pass_input.send_keys(self.password)
-                pass_input.send_keys(Keys.RETURN)
-                self.logger.info("Credentials submitted.")
-            except Exception as e:
-                # If we fail here, it's critcal UNLESS we were already logged in (which we assume we aren't)
-                self.logger.warning(f"Login form interaction issue: {e}")
-                # We continue to verification just in case
+            if not is_logged_in:
+                self.logger.info("Performing Login Sequence...")
 
-            # 4. Verify Success
-            self.logger.info("Waiting for successful login redirect...")
-            try:
-                wait.until(EC.url_contains("library"))
-                time.sleep(5)
-                # Verify 'Anmelden' is gone
-                if len(driver.find_elements(By.XPATH, "//*[contains(text(), 'Anmelden')]")) > 0:
-                     self.logger.error("Login failed (Anmelden button still visible)")
-                     self.take_screenshot(driver, "login_failed")
-                     return False
-                self.logger.info("Login verified.")
-            except:
-                self.logger.error("Login verification timed out.")
-                self.take_screenshot(driver, "login_timeout")
-                return False
+                # 1. Country Selection
+                self.logger.info("Looking for Country Selection...")
+                try:
+                    # Wait explicitly
+                    de_btn = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Deutschland')]")))
+                    de_btn.click()
+                    self.logger.info("Clicked 'Deutschland'.")
+                except:
+                    self.logger.info("Country selection skipped (not found or already selected).")
+
+                # 2. Provider "Thalia DE"
+                self.logger.info("Looking for Provider 'Thalia DE'...")
+                try:
+                     thalia_img = wait.until(EC.element_to_be_clickable((By.XPATH, "//img[@alt='Thalia DE']")))
+                     try:
+                         thalia_img.click()
+                     except:
+                         thalia_img.find_element(By.XPATH, "./..").click()
+                     self.logger.info("Clicked 'Thalia DE'.")
+                except:
+                     self.logger.info("Provider selection skipped.")
+
+                # 3. Thalia Login Form
+                self.logger.info("Waiting for Login Form...")
+                
+                # Handle 'Anmelden' landing page button if sticking
+                try:
+                    anmelden_landing = WebDriverWait(driver, 5).until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'Anmelden')]")))
+                    if anmelden_landing.is_displayed():
+                        anmelden_landing.click()
+                except:
+                    pass
+                
+                # Enter Credentials
+                try:
+                    # Specific wait for Thalia/Tolino user input
+                    user_input = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[name='username'], input[name='email'], input[type='email']")))
+                    time.sleep(1) # Stabilization wait
+                    user_input.click()
+                    user_input.clear()
+                    user_input.send_keys(self.username)
+                    
+                    try:
+                        pass_input = driver.find_element(By.CSS_SELECTOR, "input[type='password']")
+                    except:
+                        # Sometimes need to hit enter to reveal password
+                        user_input.send_keys(Keys.RETURN)
+                        pass_input = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input[type='password']")))
+                    
+                    pass_input.click()
+                    pass_input.clear()
+                    pass_input.send_keys(self.password)
+                    pass_input.send_keys(Keys.RETURN)
+                    self.logger.info("Credentials submitted.")
+                    
+                    # 4. Verify Success
+                    self.logger.info("Waiting for successful login redirect...")
+                    
+                    # Wait for library URL AND absence of Anmelden button
+                    wait.until(EC.url_contains("library"))
+                    
+                    # Ensure 'Anmelden' is gone (give it a few seconds to transition)
+                    WebDriverWait(driver, 15).until_not(
+                        EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'Anmelden')]"))
+                    )
+                    self.logger.info("Login verified.")
+                    
+                except Exception as e:
+                    self.logger.error(f"Login Failure: {e}")
+                    self.take_screenshot(driver, "login_failed")
+                    return False
 
             # --- Navigation Phase ---
             target_url = "https://webreader.mytolino.com/library/index.html#/mybooks/titles"
             self.logger.info(f"Navigating to specific upload page: {target_url}")
             driver.get(target_url)
             
-            # Wait for page to actually load content. 
+            # Wait for Overflow Menu button
             self.logger.info("Waiting for page header/menu to load...")
             try:
-                time.sleep(5) # Let SPA settle
                 menu_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[data-test-id='library-headerBar-overflowMenu-button']")))
                 self.logger.info("Overflow Menu button found.")
                 
@@ -175,7 +175,8 @@ class TolinoUploader:
             try:
                 success_msg = wait.until(EC.visibility_of_element_located((By.XPATH, "//*[contains(text(), 'erfolgreich') or contains(text(), 'hinzugefügt')]")))
                 self.logger.info(f"Success detected: {success_msg.text}")
-                time.sleep(3)
+                # Wait a tiny bit for UI to settle before closing (optional safety)
+                time.sleep(1) 
                 return True
                 
             except Exception as e:

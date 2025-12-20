@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 import glob
+import argparse
 from dotenv import load_dotenv
 from src.zeit_scraper import ZeitScraper
 from src.tolino_uploader import TolinoUploader
@@ -26,6 +27,10 @@ def get_latest_file(directory, extension=".epub"):
     return max(files, key=os.path.getctime)
 
 def main():
+    parser = argparse.ArgumentParser(description="Zeit Transfer Script")
+    parser.add_argument("--test", action="store_true", help="Run in test mode (ignore history check)")
+    args = parser.parse_args()
+
     logger.info("Starting Zeit-Transfer...")
     
     if not load_environment():
@@ -39,7 +44,8 @@ def main():
         password=os.getenv("ZEIT_PASSWORD"),
         login_url=os.getenv("ZEIT_LOGIN_URL"),
         download_url=os.getenv("ZEIT_DOWNLOAD_URL"),
-        download_dir=temp_dir
+        download_dir=temp_dir,
+        test_mode=args.test
     )
 
     # 1. Download Step
