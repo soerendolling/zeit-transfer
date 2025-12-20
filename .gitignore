@@ -1,0 +1,25 @@
+# Environment Variables
+.env
+
+# Session States & Tokens
+zeit_state.json
+tolino_state.json
+tolino_token.json
+
+# Temporary Files
+temp/
+*.epub
+*.png
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+
+# Mac
+.DS_Store
