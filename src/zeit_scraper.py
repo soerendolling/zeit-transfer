@@ -11,13 +11,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 class ZeitScraper:
-    def __init__(self, username, password, login_url, download_url, download_dir="temp", state_file=None, history_file="download_history.json"):
+    def __init__(self, username, password, login_url, download_url, download_dir="temp", history_file="download_history.json"):
         self.username = username
         self.password = password
         self.login_url = login_url
         self.download_url = download_url
         self.download_dir = os.path.abspath(download_dir)
-        self.state_file = state_file 
         self.history_file = history_file
         self.logger = logging.getLogger(__name__)
 

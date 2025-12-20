@@ -319,3 +319,136 @@ waiting for navigation to "**/library**" until 'load'
 2025-12-06 14:49:47,854 - main - ERROR - Failed to upload 2025_52_DIE_ZEIT.epub to Tolino.
 2025-12-06 14:49:47,854 - main - WARNING - Upload failed. File preserved at: temp/2025_52_DIE_ZEIT.epub
 2025-12-06 14:49:47,854 - main - INFO - Zeit-Transfer finished.
+2025-12-20 18:42:07,650 - main - INFO - Starting Zeit-Transfer...
+2025-12-20 18:42:07,651 - main - INFO - Found existing file in temp: 2025_52_DIE_ZEIT.epub. Skipping download and retrying upload.
+2025-12-20 18:42:07,652 - main - INFO - Processing issue: 2025_52_DIE_ZEIT.epub
+2025-12-20 18:42:07,652 - src.tolino_uploader - INFO - Starting Upload for temp/2025_52_DIE_ZEIT.epub...
+2025-12-20 18:42:08,298 - undetected_chromedriver.patcher - INFO - patching driver executable /Users/sorendolling/Library/Application Support/undetected_chromedriver/undetected_chromedriver
+2025-12-20 18:42:10,984 - src.tolino_uploader - INFO - Navigating to https://webreader.mytolino.com/
+2025-12-20 18:42:16,332 - src.tolino_uploader - INFO - Already logged in.
+2025-12-20 18:42:16,332 - src.tolino_uploader - INFO - Waiting for Library...
+2025-12-20 18:42:21,338 - src.tolino_uploader - INFO - Login successful.
+2025-12-20 18:42:21,338 - src.tolino_uploader - INFO - Uploading file: temp/2025_52_DIE_ZEIT.epub
+2025-12-20 18:42:21,346 - src.tolino_uploader - ERROR - Upload failed: Message: no such element: Unable to locate element: {"method":"css selector","selector":"input[type='file']"}
+  (Session info: chrome=143.0.7499.147); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#nosuchelementexception
+Stacktrace:
+0   undetected_chromedriver             0x0000000104fe8098 undetected_chromedriver + 6295704
+1   undetected_chromedriver             0x0000000104fdf74a undetected_chromedriver + 6260554
+2   undetected_chromedriver             0x0000000104a51c4b undetected_chromedriver + 437323
+3   undetected_chromedriver             0x0000000104aa3650 undetected_chromedriver + 771664
+4   undetected_chromedriver             0x0000000104aa3961 undetected_chromedriver + 772449
+5   undetected_chromedriver             0x0000000104af3eb4 undetected_chromedriver + 1101492
+6   undetected_chromedriver             0x0000000104af12a8 undetected_chromedriver + 1090216
+7   undetected_chromedriver             0x0000000104a95fc7 undetected_chromedriver + 716743
+8   undetected_chromedriver             0x0000000104a96c91 undetected_chromedriver + 720017
+9   undetected_chromedriver             0x0000000104fa5ca1 undetected_chromedriver + 6024353
+10  undetected_chromedriver             0x0000000104faa0f0 undetected_chromedriver + 6041840
+11  undetected_chromedriver             0x0000000104f811a0 undetected_chromedriver + 5874080
+12  undetected_chromedriver             0x0000000104faab65 undetected_chromedriver + 6044517
+13  undetected_chromedriver             0x0000000104f6fee1 undetected_chromedriver + 5803745
+14  undetected_chromedriver             0x0000000104fcc7c8 undetected_chromedriver + 6182856
+15  undetected_chromedriver             0x0000000104fcc983 undetected_chromedriver + 6183299
+16  undetected_chromedriver             0x0000000104fdf34c undetected_chromedriver + 6259532
+17  libsystem_pthread.dylib             0x00007ff81224ae59 _pthread_start + 115
+18  libsystem_pthread.dylib             0x00007ff812246857 thread_start + 15
+
+2025-12-20 18:42:21,567 - main - ERROR - Failed to upload 2025_52_DIE_ZEIT.epub to Tolino.
+2025-12-20 18:42:21,568 - main - WARNING - Upload failed. File preserved at: temp/2025_52_DIE_ZEIT.epub
+2025-12-20 18:42:21,568 - main - INFO - Zeit-Transfer finished.
+2025-12-20 18:49:40,338 - main - INFO - Starting Zeit-Transfer...
+2025-12-20 18:49:40,339 - main - INFO - Found existing file in temp: 2025_52_DIE_ZEIT.epub. Skipping download and retrying upload.
+2025-12-20 18:49:40,339 - main - INFO - Processing issue: 2025_52_DIE_ZEIT.epub
+2025-12-20 18:49:40,339 - src.tolino_uploader - INFO - Starting Upload for temp/2025_52_DIE_ZEIT.epub...
+2025-12-20 18:49:40,969 - undetected_chromedriver.patcher - INFO - patching driver executable /Users/sorendolling/Library/Application Support/undetected_chromedriver/undetected_chromedriver
+2025-12-20 18:49:43,654 - src.tolino_uploader - INFO - Navigating to https://webreader.mytolino.com/
+2025-12-20 18:49:49,115 - src.tolino_uploader - INFO - Already logged in.
+2025-12-20 18:49:49,115 - src.tolino_uploader - INFO - Waiting for Library...
+2025-12-20 18:49:54,119 - src.tolino_uploader - INFO - Navigating to specific upload page: https://webreader.mytolino.com/library/index.html#/mybooks/titles
+2025-12-20 18:49:59,162 - src.tolino_uploader - INFO - Clicking Overflow Menu...
+2025-12-20 18:50:19,258 - src.tolino_uploader - ERROR - Could not find Overflow Menu: Message: 
+Stacktrace:
+0   undetected_chromedriver             0x0000000103115098 undetected_chromedriver + 6295704
+1   undetected_chromedriver             0x000000010310c74a undetected_chromedriver + 6260554
+2   undetected_chromedriver             0x0000000102b7ec4b undetected_chromedriver + 437323
+3   undetected_chromedriver             0x0000000102bd0650 undetected_chromedriver + 771664
+4   undetected_chromedriver             0x0000000102bd0961 undetected_chromedriver + 772449
+5   undetected_chromedriver             0x0000000102c20eb4 undetected_chromedriver + 1101492
+6   undetected_chromedriver             0x0000000102c1e2a8 undetected_chromedriver + 1090216
+7   undetected_chromedriver             0x0000000102bc2fc7 undetected_chromedriver + 716743
+8   undetected_chromedriver             0x0000000102bc3c91 undetected_chromedriver + 720017
+9   undetected_chromedriver             0x00000001030d2ca1 undetected_chromedriver + 6024353
+10  undetected_chromedriver             0x00000001030d70f0 undetected_chromedriver + 6041840
+11  undetected_chromedriver             0x00000001030ae1a0 undetected_chromedriver + 5874080
+12  undetected_chromedriver             0x00000001030d7b65 undetected_chromedriver + 6044517
+13  undetected_chromedriver             0x000000010309cee1 undetected_chromedriver + 5803745
+14  undetected_chromedriver             0x00000001030f97c8 undetected_chromedriver + 6182856
+15  undetected_chromedriver             0x00000001030f9983 undetected_chromedriver + 6183299
+16  undetected_chromedriver             0x000000010310c34c undetected_chromedriver + 6259532
+17  libsystem_pthread.dylib             0x00007ff81224ae59 _pthread_start + 115
+18  libsystem_pthread.dylib             0x00007ff812246857 thread_start + 15
+
+2025-12-20 18:50:19,523 - main - ERROR - Failed to upload 2025_52_DIE_ZEIT.epub to Tolino.
+2025-12-20 18:50:19,523 - main - WARNING - Upload failed. File preserved at: temp/2025_52_DIE_ZEIT.epub
+2025-12-20 18:50:19,523 - main - INFO - Zeit-Transfer finished.
+2025-12-20 18:52:55,123 - main - INFO - Starting Zeit-Transfer...
+2025-12-20 18:52:55,124 - main - INFO - Found existing file in temp: 2025_52_DIE_ZEIT.epub. Skipping download and retrying upload.
+2025-12-20 18:52:55,124 - main - INFO - Processing issue: 2025_52_DIE_ZEIT.epub
+2025-12-20 18:52:55,124 - src.tolino_uploader - INFO - Starting Upload for temp/2025_52_DIE_ZEIT.epub...
+2025-12-20 18:52:56,755 - undetected_chromedriver.patcher - INFO - patching driver executable /Users/sorendolling/Library/Application Support/undetected_chromedriver/undetected_chromedriver
+2025-12-20 18:52:59,001 - src.tolino_uploader - INFO - Navigating to https://webreader.mytolino.com/
+2025-12-20 18:53:04,229 - src.tolino_uploader - INFO - Session appears valid (already logged in).
+2025-12-20 18:53:04,230 - src.tolino_uploader - INFO - Navigating to specific upload page: https://webreader.mytolino.com/library/index.html#/mybooks/titles
+2025-12-20 18:53:04,282 - src.tolino_uploader - INFO - Waiting for page header/menu to load...
+2025-12-20 18:53:29,337 - src.tolino_uploader - ERROR - Could not interact with Overflow Menu: Message: 
+Stacktrace:
+0   undetected_chromedriver             0x0000000102a0f098 undetected_chromedriver + 6295704
+1   undetected_chromedriver             0x0000000102a0674a undetected_chromedriver + 6260554
+2   undetected_chromedriver             0x0000000102478c4b undetected_chromedriver + 437323
+3   undetected_chromedriver             0x00000001024ca650 undetected_chromedriver + 771664
+4   undetected_chromedriver             0x00000001024ca961 undetected_chromedriver + 772449
+5   undetected_chromedriver             0x000000010251aeb4 undetected_chromedriver + 1101492
+6   undetected_chromedriver             0x00000001025182a8 undetected_chromedriver + 1090216
+7   undetected_chromedriver             0x00000001024bcfc7 undetected_chromedriver + 716743
+8   undetected_chromedriver             0x00000001024bdc91 undetected_chromedriver + 720017
+9   undetected_chromedriver             0x00000001029ccca1 undetected_chromedriver + 6024353
+10  undetected_chromedriver             0x00000001029d10f0 undetected_chromedriver + 6041840
+11  undetected_chromedriver             0x00000001029a81a0 undetected_chromedriver + 5874080
+12  undetected_chromedriver             0x00000001029d1b65 undetected_chromedriver + 6044517
+13  undetected_chromedriver             0x0000000102996ee1 undetected_chromedriver + 5803745
+14  undetected_chromedriver             0x00000001029f37c8 undetected_chromedriver + 6182856
+15  undetected_chromedriver             0x00000001029f3983 undetected_chromedriver + 6183299
+16  undetected_chromedriver             0x0000000102a0634c undetected_chromedriver + 6259532
+17  libsystem_pthread.dylib             0x00007ff81224ae59 _pthread_start + 115
+18  libsystem_pthread.dylib             0x00007ff812246857 thread_start + 15
+
+2025-12-20 18:53:29,471 - src.tolino_uploader - INFO - Saved screenshot: menu_interaction_failed_1766253209.png
+2025-12-20 18:53:29,557 - main - ERROR - Failed to upload 2025_52_DIE_ZEIT.epub to Tolino.
+2025-12-20 18:53:29,557 - main - WARNING - Upload failed. File preserved at: temp/2025_52_DIE_ZEIT.epub
+2025-12-20 18:53:29,557 - main - INFO - Zeit-Transfer finished.
+2025-12-20 18:55:22,209 - main - INFO - Starting Zeit-Transfer...
+2025-12-20 18:55:22,210 - main - INFO - Found existing file in temp: 2025_52_DIE_ZEIT.epub. Skipping download and retrying upload.
+2025-12-20 18:55:22,210 - main - INFO - Processing issue: 2025_52_DIE_ZEIT.epub
+2025-12-20 18:55:22,210 - src.tolino_uploader - INFO - Starting Upload for temp/2025_52_DIE_ZEIT.epub...
+2025-12-20 18:55:22,818 - undetected_chromedriver.patcher - INFO - patching driver executable /Users/sorendolling/Library/Application Support/undetected_chromedriver/undetected_chromedriver
+2025-12-20 18:55:24,988 - src.tolino_uploader - INFO - Navigating to https://webreader.mytolino.com/
+2025-12-20 18:55:30,240 - src.tolino_uploader - INFO - Performing Login Sequence...
+2025-12-20 18:55:30,241 - src.tolino_uploader - INFO - Looking for Country Selection...
+2025-12-20 18:55:30,337 - src.tolino_uploader - INFO - Clicked 'Deutschland'.
+2025-12-20 18:55:30,337 - src.tolino_uploader - INFO - Looking for Provider 'Thalia DE'...
+2025-12-20 18:55:32,399 - src.tolino_uploader - INFO - Clicked 'Thalia DE'.
+2025-12-20 18:55:32,399 - src.tolino_uploader - INFO - Waiting for Login Form...
+2025-12-20 18:55:40,917 - src.tolino_uploader - INFO - Credentials submitted.
+2025-12-20 18:55:40,917 - src.tolino_uploader - INFO - Waiting for successful login redirect...
+2025-12-20 18:55:45,944 - src.tolino_uploader - INFO - Login verified.
+2025-12-20 18:55:45,945 - src.tolino_uploader - INFO - Navigating to specific upload page: https://webreader.mytolino.com/library/index.html#/mybooks/titles
+2025-12-20 18:55:46,003 - src.tolino_uploader - INFO - Waiting for page header/menu to load...
+2025-12-20 18:55:51,041 - src.tolino_uploader - INFO - Overflow Menu button found.
+2025-12-20 18:55:51,106 - src.tolino_uploader - INFO - Overflow Menu clicked.
+2025-12-20 18:55:51,106 - src.tolino_uploader - INFO - Looking for file input...
+2025-12-20 18:55:51,114 - src.tolino_uploader - INFO - 'Hochladen' option visible.
+2025-12-20 18:55:51,119 - src.tolino_uploader - INFO - Sending file to input: temp/2025_52_DIE_ZEIT.epub
+2025-12-20 18:55:51,135 - src.tolino_uploader - INFO - Waiting for success confirmation...
+2025-12-20 18:55:55,292 - src.tolino_uploader - INFO - Success detected: Das Hochladen war erfolgreich. Der Titel wurde erfolgreich hochgeladen.
+2025-12-20 18:55:58,596 - main - INFO - Successfully uploaded 2025_52_DIE_ZEIT.epub to Tolino.
+2025-12-20 18:55:58,597 - main - INFO - Cleaned up temporary file: temp/2025_52_DIE_ZEIT.epub
+2025-12-20 18:55:58,597 - main - INFO - Zeit-Transfer finished.

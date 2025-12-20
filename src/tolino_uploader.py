@@ -8,11 +8,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 class TolinoUploader:
-    def __init__(self, username, password, login_url, state_file=None):
+    def __init__(self, username, password, login_url):
         self.username = username
         self.password = password
         self.login_url = login_url 
-        self.state_file = state_file 
         self.logger = logging.getLogger(__name__)
 
     def take_screenshot(self, driver, name):
