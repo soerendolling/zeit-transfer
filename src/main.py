@@ -1,4 +1,5 @@
 import os
+import sys
 import logging
 import glob
 from dotenv import load_dotenv
@@ -28,7 +29,7 @@ def main():
     logger.info("Starting Zeit-Transfer...")
     
     if not load_environment():
-        return
+        sys.exit(1)
 
     temp_dir = "temp"
     
@@ -38,17 +39,10 @@ def main():
         password=os.getenv("ZEIT_PASSWORD"),
         login_url=os.getenv("ZEIT_LOGIN_URL"),
         download_url=os.getenv("ZEIT_DOWNLOAD_URL"),
-        download_dir=temp_dir,
-        state_file="zeit_state.json" # Not active in Selenium version but kept
+        download_dir=temp_dir
     )
 
     # 1. Download Step
-    # Check if we already have a file in temp? 
-    # Logic: 
-    # If file exists in temp, we assume it's the one we messed up uploading last time?
-    # OR we just rely on the history check.
-    # Let's rely on the scraper.
-    
     epub_path = None
     existing_file = get_latest_file(temp_dir)
     
@@ -56,29 +50,30 @@ def main():
         logger.info(f"Found existing file in temp: {os.path.basename(existing_file)}. Skipping download and retrying upload.")
         epub_path = existing_file
     else:
+        # 2. Download latest issue
+        logger.info("Checking for new issue...")
         epub_path = scraper.download_latest_issue()
-    
-    # Handle Skip
-    if epub_path == "SKIPPED":
-        logger.info("Scraper reported no new issue. Exiting.")
-        return
+        
+        if epub_path == "SKIPPED":
+            logger.info("Scraper reported no new issue. Exiting.")
+            return # Success exit for skipped
 
-    if not epub_path:
-        logger.error("Download failed.")
-        return
+        if not epub_path:
+            logger.error("Download failed.")
+            sys.exit(1) # Fail exit
 
-    logger.info(f"Processing issue: {os.path.basename(epub_path)}")
+    filename = os.path.basename(epub_path)
+    logger.info(f"Processing issue: {filename}")
 
     # 2. Upload Step
     uploader = TolinoUploader(
         username=os.getenv("TOLINO_USER"),
         password=os.getenv("TOLINO_PASSWORD"),
-        login_url="https://webreader.mytolino.com/",
-        state_file="tolino_state.json"
+        login_url="https://webreader.mytolino.com/"
     )
 
     if uploader.upload_epub(epub_path):
-        logger.info(f"Successfully uploaded {os.path.basename(epub_path)} to Tolino.")
+        logger.info(f"Successfully uploaded {filename} to Tolino.")
         # Cleanup
         try:
             os.remove(epub_path)
@@ -86,8 +81,9 @@ def main():
         except Exception as e:
             logger.warning(f"Failed to cleanup file: {e}")
     else:
-        logger.error(f"Failed to upload {os.path.basename(epub_path)} to Tolino.")
+        logger.error(f"Failed to upload {filename} to Tolino.")
         logger.warning(f"Upload failed. File preserved at: {epub_path}")
+        sys.exit(1) # Fail exit
 
     logger.info("Zeit-Transfer finished.")
 

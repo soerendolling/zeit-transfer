@@ -41,14 +41,16 @@ jobs:
         TOLINO_USER: ${{ secrets.TOLINO_USER }}
         TOLINO_PASSWORD: ${{ secrets.TOLINO_PASSWORD }}
       run: |
-        # Use xvfb to provide a virtual display for undetected-chromedriver
         xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" python -m src.main
 
     - name: Commit History
       if: success()
       run: |
-        git config --global user.name 'GitHub Action'
-        git config --global user.email 'action@github.com'
-        git add download_history.json
-        # Only commit if there are changes
-        git diff --quiet && git diff --staged --quiet || (git commit -m "Update download history [skip ci]" && git push)
+        if [ -f download_history.json ]; then
+            git config --global user.name 'GitHub Action'
+            git config --global user.email 'action@github.com'
+            git add download_history.json
+            git diff --quiet && git diff --staged --quiet || (git commit -m "Update download history [skip ci]" && git push)
+        else
+            echo "No history file found to commit."
+        fi
