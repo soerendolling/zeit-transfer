@@ -1,106 +1,93 @@
 import os
-import json
 import logging
-import shutil
-from datetime import datetime
-from src.auth import load_credentials
+import glob
+from dotenv import load_dotenv
 from src.zeit_scraper import ZeitScraper
 from src.tolino_uploader import TolinoUploader
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("zeit_transfer.log"),
-        logging.StreamHandler()
-    ]
-)
+# Setup Logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger("main")
 
-STATE_FILE = "state.json"
+def load_environment():
+    load_dotenv()
+    required_vars = ["ZEIT_USER", "ZEIT_PASSWORD", "ZEIT_LOGIN_URL", "ZEIT_DOWNLOAD_URL", "TOLINO_USER", "TOLINO_PASSWORD"]
+    missing = [var for var in required_vars if not os.getenv(var)]
+    if missing:
+        logger.error(f"Missing environment variables: {', '.join(missing)}")
+        return False
+    return True
 
-def load_state():
-    if os.path.exists(STATE_FILE):
-        with open(STATE_FILE, "r") as f:
-            return json.load(f)
-    return {"downloaded_issues": []}
-
-def save_state(state):
-    with open(STATE_FILE, "w") as f:
-        json.dump(state, f, indent=4)
+def get_latest_file(directory, extension=".epub"):
+    files = glob.glob(os.path.join(directory, f"*{extension}"))
+    if not files:
+        return None
+    return max(files, key=os.path.getctime)
 
 def main():
     logger.info("Starting Zeit-Transfer...")
-
-    try:
-        credentials = load_credentials()
-    except ValueError as e:
-        logger.error(str(e))
+    
+    if not load_environment():
         return
 
-    state = load_state()
+    temp_dir = "temp"
     
+    # Initialize Scraper
     scraper = ZeitScraper(
-        credentials["ZEIT_USER"], 
-        credentials["ZEIT_PASSWORD"],
-        credentials["ZEIT_LOGIN_URL"],
-        credentials["ZEIT_DOWNLOAD_URL"],
-        state_file="zeit_state.json"
+        username=os.getenv("ZEIT_USER"),
+        password=os.getenv("ZEIT_PASSWORD"),
+        login_url=os.getenv("ZEIT_LOGIN_URL"),
+        download_url=os.getenv("ZEIT_DOWNLOAD_URL"),
+        download_dir=temp_dir,
+        state_file="zeit_state.json" # Not active in Selenium version but kept
     )
-    
-    # 1. Check for existing file in temp (retry mode)
-    # If there is a file in temp that hasn't been marked as processed, try to upload it.
-    existing_files = [f for f in os.listdir("temp") if f.endswith(".epub")]
-    if existing_files:
-        file_path = os.path.join("temp", existing_files[0])
-        filename = existing_files[0]
-        logger.info(f"Found existing file in temp: {filename}. Skipping download and retrying upload.")
-    else:
-        # 2. Download latest issue
-        logger.info("Checking for new issue...")
-        file_path = scraper.download_latest_issue()
-        
-        if not file_path:
-            logger.info("No file downloaded or error occurred.")
-            return
 
-        filename = os.path.basename(file_path)
+    # 1. Download Step
+    # Check if we already have a file in temp? 
+    # Logic: 
+    # If file exists in temp, we assume it's the one we messed up uploading last time?
+    # OR we just rely on the history check.
+    # Let's rely on the scraper.
     
-    # 3. Check if already processed (uploaded)
-    if filename in state["downloaded_issues"]:
-        logger.info(f"Issue {filename} already processed (uploaded). Skipping.")
-        # If it's in state but still in temp, we should delete it.
-        if os.path.exists(file_path):
-             os.remove(file_path)
-             logger.info(f"Deleted already processed file from temp: {file_path}")
+    epub_path = None
+    existing_file = get_latest_file(temp_dir)
+    
+    if existing_file:
+        logger.info(f"Found existing file in temp: {os.path.basename(existing_file)}. Skipping download and retrying upload.")
+        epub_path = existing_file
+    else:
+        epub_path = scraper.download_latest_issue()
+    
+    # Handle Skip
+    if epub_path == "SKIPPED":
+        logger.info("Scraper reported no new issue. Exiting.")
         return
 
-    logger.info(f"Processing issue: {filename}")
+    if not epub_path:
+        logger.error("Download failed.")
+        return
 
-    # 4. Upload to Tolino
+    logger.info(f"Processing issue: {os.path.basename(epub_path)}")
+
+    # 2. Upload Step
     uploader = TolinoUploader(
-        credentials["TOLINO_USER"], 
-        credentials["TOLINO_PASSWORD"],
-        credentials["TOLINO_LOGIN_URL"],
+        username=os.getenv("TOLINO_USER"),
+        password=os.getenv("TOLINO_PASSWORD"),
+        login_url="https://webreader.mytolino.com/",
         state_file="tolino_state.json"
     )
-    success = uploader.upload_epub(file_path)
 
-    if success:
-        logger.info(f"Successfully uploaded {filename} to Tolino.")
-        state["downloaded_issues"].append(filename)
-        save_state(state)
+    if uploader.upload_epub(epub_path):
+        logger.info(f"Successfully uploaded {os.path.basename(epub_path)} to Tolino.")
+        # Cleanup
+        try:
+            os.remove(epub_path)
+            logger.info(f"Cleaned up temporary file: {epub_path}")
+        except Exception as e:
+            logger.warning(f"Failed to cleanup file: {e}")
     else:
-        logger.error(f"Failed to upload {filename} to Tolino.")
-
-    # 4. Cleanup
-    if os.path.exists(file_path):
-        if success:
-            os.remove(file_path)
-            logger.info(f"Cleaned up temporary file: {file_path}")
-        else:
-             logger.warning(f"Upload failed. File preserved at: {file_path}")
+        logger.error(f"Failed to upload {os.path.basename(epub_path)} to Tolino.")
+        logger.warning(f"Upload failed. File preserved at: {epub_path}")
 
     logger.info("Zeit-Transfer finished.")
 
