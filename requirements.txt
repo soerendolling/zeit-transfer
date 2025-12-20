@@ -1,3 +1,9 @@
 playwright
 python-dotenv
 playwright-stealth==1.0.6
+playwright-stealth==1.0.6
+requests
+selenium
+selenium-stealth
+webdriver-manager
+undetected-chromedriver
