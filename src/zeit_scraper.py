@@ -1,8 +1,12 @@
 import os
 import time
 import logging
-from playwright.sync_api import sync_playwright
-from playwright_stealth import stealth_sync
+import glob
+import undetected_chromedriver as uc
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 class ZeitScraper:
     def __init__(self, username, password, login_url, download_url, download_dir="temp", state_file=None):
@@ -10,8 +14,8 @@ class ZeitScraper:
         self.password = password
         self.login_url = login_url
         self.download_url = download_url
-        self.download_dir = download_dir
-        self.state_file = state_file
+        self.download_dir = os.path.abspath(download_dir)
+        self.state_file = state_file # Not strictly used in this simple Selenium version, but kept for signature compatibility
         self.logger = logging.getLogger(__name__)
 
         if not os.path.exists(self.download_dir):
@@ -19,193 +23,164 @@ class ZeitScraper:
 
     def download_latest_issue(self):
         """
-        Logs in to Die Zeit and downloads the latest EPUB issue.
+        Logs in to Die Zeit and downloads the latest EPUB issue using Selenium.
         Returns the path to the downloaded file or None if failed.
         """
-        with sync_playwright() as p:
-            # Reverting to a simpler launch configuration to see if it helps with CAPTCHA loading
-            browser = p.chromium.launch(
-                headless=False
-            ) 
+        self.logger.info("Starting Zeit Scraper (Selenium)...")
+        driver = None
+        
+        try:
+            # Configure Chrome Options for Download
+            options = uc.ChromeOptions()
+            prefs = {
+                "download.default_directory": self.download_dir,
+                "download.prompt_for_download": False,
+                "download.directory_upgrade": True,
+                "safebrowsing.enabled": True,
+                "plugins.always_open_pdf_externally": True # Good practice
+            }
+            options.add_experimental_option("prefs", prefs)
             
-            # Load state if exists
-            loaded_session = False
-            if self.state_file and os.path.exists(self.state_file):
-                self.logger.info(f"Loading session from {self.state_file}")
-                context = browser.new_context(accept_downloads=True, storage_state=self.state_file)
-                loaded_session = True
+            # Initialize Driver
+            driver = uc.Chrome(use_subprocess=True, options=options)
+            driver.set_window_size(1280, 800)
+            
+            wait = WebDriverWait(driver, 20)
+            
+            # --- Login ---
+            self.logger.info(f"Navigating to login page: {self.login_url}")
+            driver.get(self.login_url)
+            
+            # Check if already logged in (redirected to account page)
+            time.sleep(3)
+            if "konto" in driver.current_url or "meine-inhalte" in driver.current_url:
+                self.logger.info("Already logged in.")
             else:
-                context = browser.new_context(accept_downloads=True)
-
-            page = context.new_page()
-            
-            # Temporarily disabled stealth to test baseline
-            # stealth_sync(page)
-
-            try:
-                self.logger.info(f"Navigating to login page: {self.login_url}")
-                page.goto(self.login_url)
-
-                # Check if we are already logged in
-                already_logged_in = False
-                if loaded_session:
-                    try:
-                        # If logged in, we might be redirected to 'meine-inhalte' or 'konto' or just stay logged in
-                        # Let's check if the login form is absent or if we are redirected
-                        page.wait_for_selector("input#username", state="detached", timeout=5000)
-                        self.logger.info("Login form not found immediately. Verifying login state...")
-                        # Or check for 'Abmelden' button or similar
-                        if page.get_by_text("Abmelden", exact=False).count() > 0 or "konto" in page.url:
-                             already_logged_in = True
-                             self.logger.info("Session valid. Already logged in.")
-                    except:
-                         pass
-
-                if not already_logged_in:
-
-                if not already_logged_in:
-                    # Handle cookie banner if present
-                    try:
-                        page.wait_for_selector("button[title='Zustimmen']", timeout=5000)
-                        page.click("button[title='Zustimmen']")
-                    except:
-                        pass
-
-                    self.logger.info("Logging in...")
-                    # Update selectors based on user feedback
-                    # Email: input#username
-                    # Password: input#password
-                    # Submit: input#kc-login
-                    
-                    # Type significantly slower to simulate human behavior and trigger events
-                    page.click("input#username")
-                    page.type("input#username", self.username, delay=100)
-                    
-                    page.click("input#password")
-                    page.type("input#password", self.password, delay=100)
-                    
-                    # Check for CAPTCHA/human verification potentially
-                    # Sometimes just waiting a bit helps with stealth
-                    time.sleep(2)
-                    
-                    try:
-                        # Wait for button to be enabled
-                        self.logger.info("Waiting for login button to be enabled...")
-                        page.wait_for_function("document.querySelector('#kc-login') && !document.querySelector('#kc-login').disabled", timeout=5000)
-                        page.click("#kc-login", timeout=5000)
-                    except:
-                         self.logger.warning("Automated login click failed (button disabled or not found).")
-                         self.logger.info("PLEASE LOG IN MANUALLY IN THE BROWSER WINDOW.")
-                         # We don't exit here, we just fall through to the wait_for_url
-                    
-                    # Wait for login to complete
-                    # The user says "Use log in page = https://login.zeit.de/"
-                    # After login, we might be redirected. We should wait for a stable state.
-                    self.logger.info("Waiting for login to complete (checking URL)...")
-                    # Wait for any URL that indicates we left the login page
-                    # The user URL: https://www.zeit.de/konto...
-                    try:
-                        page.wait_for_url(lambda url: "zeit.de/konto" in url or "aktuelle-ausgabe" in url, timeout=300000)
-                    except:
-                        self.logger.warning("URL check timed out, but proceeding assuming login might be done.")
-                    
-                    self.logger.info("Login successful.")
-                    if self.state_file:
-                        context.storage_state(path=self.state_file)
-                        self.logger.info(f"Session saved to {self.state_file}")
-
-                # Navigate to digital edition
-                self.logger.info(f"Navigating to download URL: {self.download_url}")
-                page.goto(self.download_url)
-
-                # "Dann auf button zur aktuelle aufgabe"
-                # We look for a link/button that says "Aktuelle Ausgabe" or similar.
-                # It might be an image or text.
-                self.logger.info("Looking for 'Aktuelle Ausgabe'...")
-                
-                # Try to find a link that contains "aktuelle-ausgabe" or text "Aktuelle Ausgabe"
-                # Note: The user provided URL https://epaper.zeit.de/abo/diezeit/ might already show the issues.
-                # We need to click on the latest one.
-                
-                # Let's try to find the first issue or a specific "Aktuelle Ausgabe" button.
-                # Based on typical e-paper layouts, the latest issue is usually first.
-                # Or there is a specific button.
-                
-                # Attempt 1: Look for text "Aktuelle Ausgabe"
-                # "Dann auf button zur aktuelle aufgabe"
-                self.logger.info("Looking for 'Zur aktuellen Ausgabe'...")
-                
-                # Try to find a link that contains "Aktuelle Ausgabe" or "Zur aktuellen Ausgabe"
-                # We will try a few variations to be robust
-                found_issue = False
-                for selector in ["text=Zur aktuellen Ausgabe", "text=Aktuelle Ausgabe", "a:has-text('Aktuelle Ausgabe')"]:
-                    try:
-                        if page.is_visible(selector):
-                            self.logger.info(f"Clicking {selector}...")
-                            page.click(selector)
-                            page.wait_for_load_state("networkidle")
-                            found_issue = True
-                            break
-                    except:
-                        continue
-                
-                if not found_issue:
-                     self.logger.warning("'Zur aktuellen Ausgabe' link not found. We might already be on the issue page or the layout changed.")
-
-                # "dann auf button epub laden"
-                self.logger.info("Looking for EPUB download button...")
-                
-                # We need to trigger the download.
-                # In Playwright, if the click triggers a download, we must wrap it with expect_download.
-                # HOWEVER, sometimes you have to open a menu first.
-                
-                # Check for "EPUB" button directly
-                epub_button = page.get_by_text("EPUB", exact=False).first
-                
-                # If not visible, look for a "Download" menu
-                if not epub_button.is_visible():
-                     self.logger.info("EPUB button not immediately visible. Checking for 'Download' menu...")
-                     # sometimes it's under a "Download" or icon
-                     download_menu = page.get_by_text("Download", exact=False).first
-                     if download_menu.is_visible():
-                         download_menu.click()
-                         # Wait a bit for menu to open
-                         time.sleep(1)
-                         epub_button = page.get_by_text("EPUB", exact=False).first
-                
-                if not epub_button.is_visible():
-                    self.logger.error("EPUB download link not found.")
-                    # Take a screenshot to see what's on the page
-                    page.screenshot(path="issue_page_debug.png")
-                    self.logger.info("Saved issue_page_debug.png")
-                    return None
-                
-                self.logger.info("EPUB button found. Clicking...")
-                
-                # Setup download listener BEFORE clicking
-                with page.expect_download(timeout=60000) as download_info:
-                    epub_button.click()
-                
-                download = download_info.value
-                
-                # Generate a safe filename
-                suggested_filename = download.suggested_filename
-                file_path = os.path.join(self.download_dir, suggested_filename)
-                
-                self.logger.info(f"Downloading {suggested_filename}...")
-                download.save_as(file_path)
-                self.logger.info(f"Download complete: {file_path}")
-                
-                return file_path
-
-            except Exception as e:
-                self.logger.error(f"An error occurred during Zeit scraping: {e}")
-                # Capture screenshot for debugging
+                # Handle Cookie Banner
                 try:
-                    page.screenshot(path="error_screenshot.png")
-                    self.logger.info("Saved error_screenshot.png")
+                    cookie_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "button[title='Zustimmen']")))
+                    cookie_btn.click()
+                    self.logger.info("Accepted cookies.")
                 except:
                     pass
+                
+                # Perform Login
+                try:
+                    self.logger.info("Entering credentials...")
+                    # Email
+                    email_input = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input#username")))
+                    email_input.click()
+                    email_input.clear()
+                    email_input.send_keys(self.username)
+                    
+                    # Password
+                    pass_input = driver.find_element(By.CSS_SELECTOR, "input#password")
+                    pass_input.click()
+                    pass_input.clear()
+                    pass_input.send_keys(self.password)
+                    
+                    # Submit
+                    # Sometimes nice to wait a split second
+                    time.sleep(1)
+                    login_btn = driver.find_element(By.CSS_SELECTOR, "#kc-login")
+                    login_btn.click()
+                    
+                    self.logger.info("Credentials submitted.")
+                    
+                    # Wait for redirect
+                    # success usually lands on account page or back to referer
+                    time.sleep(5)
+                    
+                except Exception as e:
+                    self.logger.error(f"Login interaction failed: {e}")
+                    # Capture screenshot?
+                    return None
+
+            # --- Download ---
+            self.logger.info(f"Navigating to download URL: {self.download_url}")
+            driver.get(self.download_url)
+            
+            # "Aktuelle Ausgabe" handling
+            # If we are on the subscription page, we might need to click "Zur aktuellen Ausgabe"
+            try:
+                # Look for a link text that says "Zur aktuellen Ausgabe"
+                # Using exact text or partial
+                try:
+                    issue_link = driver.find_element(By.XPATH, "//a[contains(text(), 'Zur aktuellen Ausgabe')]")
+                    if issue_link.is_displayed():
+                        self.logger.info("Found 'Zur aktuellen Ausgabe' link. Clicking...")
+                        issue_link.click()
+                        time.sleep(3)
+                except:
+                    pass # Maybe we are already on the right page
+                
+                # Look for EPUB download
+                # Usually text "EPUB"
+                # OR a generic download button that opens a menu
+                
+                self.logger.info("Looking for EPUB link...")
+                
+                # 1. Try generic "EPUB" text
+                try:
+                    epub_link = wait.until(EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'EPUB')]")))
+                    # It might be not clickable if inside a menu?
+                    if not epub_link.is_displayed():
+                         # Try finding "Download" menu
+                         download_menu = driver.find_element(By.XPATH, "//*[contains(text(), 'Download')]")
+                         download_menu.click()
+                         # Wait for menu
+                         time.sleep(1)
+                         epub_link = wait.until(EC.element_to_be_clickable((By.XPATH, "//*[contains(text(), 'EPUB')]")))
+                    
+                    self.logger.info("Clicking EPUB link...")
+                    epub_link.click()
+                    
+                except Exception as e:
+                    self.logger.error(f"Could not find valid EPUB link: {e}")
+                    return None
+                
+                # Wait for download to finish
+                self.logger.info("Waiting for download...")
+                
+                # Verification loop: check for new files in download_dir
+                # We can check for .crdownload or .part files to know it's in progress
+                # And wait until .epub appears
+                
+                timeout = 60
+                start_time = time.time()
+                downloaded_file = None
+                
+                while time.time() - start_time < timeout:
+                    # Check for .epub files modified recently
+                    epubs = glob.glob(os.path.join(self.download_dir, "*.epub"))
+                    if epubs:
+                        # Find the most recent one
+                        latest_epub = max(epubs, key=os.path.getctime)
+                        # Check if it was created just now (within last minute)
+                        if os.path.getctime(latest_epub) > start_time - 10:
+                            # Verify no .crdownload part file for it exists
+                            # (Chrome uses .crdownload)
+                            crdownloads = glob.glob(os.path.join(self.download_dir, "*.crdownload"))
+                            if not crdownloads:
+                                downloaded_file = latest_epub
+                                break
+                    time.sleep(1)
+                
+                if downloaded_file:
+                    self.logger.info(f"Download complete: {downloaded_file}")
+                    return downloaded_file
+                else:
+                    self.logger.error("Download timed out or file not found.")
+                    return None
+
+            except Exception as e:
+                self.logger.error(f"Download flow failed: {e}")
                 return None
-            finally:
-                browser.close()
+        
+        except Exception as e:
+            self.logger.error(f"ZeitScraper crashed: {e}")
+            return None
+            
+        finally:
+            if driver:
+                driver.quit()
