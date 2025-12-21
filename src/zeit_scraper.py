@@ -111,8 +111,9 @@ class ZeitScraper:
                     pass
                 
                 try:
-                    self.logger.info("Entering credentials...")
+                    self.logger.info("Entering credentials...");
                     email_input = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "input#username")))
+                    time.sleep(1) # Focus wait
                     email_input.click()
                     email_input.clear()
                     email_input.send_keys(self.username)
@@ -127,12 +128,17 @@ class ZeitScraper:
                     login_btn.click()
                     self.logger.info("Credentials submitted.")
 
-                    # Wait for redirect/success instead of sleep
-                    WebDriverWait(driver, 15).until(
-                        EC.invisibility_of_element_located((By.CSS_SELECTOR, "#kc-login"))
+                    # Wait for redirect or change in UI
+                    # We wait for either the login button to be gone OR the URL to change
+                    WebDriverWait(driver, 20).until(
+                        lambda d: d.current_url != self.login_url or \
+                                 len(d.find_elements(By.CSS_SELECTOR, "#kc-login")) == 0 or \
+                                 len(d.find_elements(By.XPATH, "//*[contains(text(), 'Abmelden')]")) > 0
                     )
+                    self.logger.info("Login successful (detected via UI change).")
                 except Exception as e:
                     self.logger.error(f"Login interaction failed: {e}")
+                    self.logger.info(f"Current URL: {driver.current_url}")
                     self.take_screenshot(driver, "zeit_login_failed")
                     return None
 

@@ -55,3 +55,10 @@ jobs:
         else
             echo "No history file found to commit."
         fi
+    - name: Upload Screenshots on Failure
+      if: failure()
+      uses: actions/upload-artifact@v3
+      with:
+        name: screenshots
+        path: "*.png"
+        retention-days: 5
