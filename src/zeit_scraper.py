@@ -134,14 +134,26 @@ class ZeitScraper:
                     login_btn.click()
                     self.logger.info("Credentials submitted.")
 
-                    # Wait for redirect or change in UI
-                    # We wait for either the login button to be gone OR the URL to change
-                    WebDriverWait(driver, 20).until(
-                        lambda d: d.current_url != self.login_url or \
-                                 len(d.find_elements(By.CSS_SELECTOR, "#kc-login")) == 0 or \
-                                 len(d.find_elements(By.XPATH, "//*[contains(text(), 'Abmelden')]")) > 0
-                    )
-                    self.logger.info("Login successful (detected via UI change).")
+                    # Strict Login Verification
+                    self.logger.info("Waiting for login to complete (looking for 'Abmelden' or 'Konto')...")
+                    try:
+                        # Wait for specific "Logged In" indicator
+                        WebDriverWait(driver, 20).until(
+                            EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'Abmelden')] | //*[contains(text(), 'Konto')]"))
+                        )
+                        self.logger.info("Login successful (verified 'Abmelden'/'Konto' presence).")
+                    except:
+                        # Check for WAF block or Error Message
+                        page_text = driver.find_element(By.TAG_NAME, "body").text
+                        if "Zugriff wurde geblockt" in page_text or "Ray ID" in page_text:
+                            self.logger.error("ACCESS DENIED: Zeit Login blocked by WAF.")
+                        elif "Benutzername oder Passwort falsch" in page_text or "Ungültige Anmeldedaten" in page_text:
+                            self.logger.error("LOGIN FAILED: Invalid credentials.")
+                        else:
+                            self.logger.error("Login verification timed out. Session not established.")
+                            
+                        self.take_screenshot(driver, "zeit_login_verification_failed")
+                        return None
                 except Exception as e:
                     self.logger.error(f"Login interaction failed: {e}")
                     self.logger.info(f"Current URL: {driver.current_url}")
