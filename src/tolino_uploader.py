@@ -36,8 +36,15 @@ class TolinoUploader:
         
         try:
             # Initialize Undetected Chromedriver
-            driver = uc.Chrome(use_subprocess=True)
-            driver.set_window_size(1280, 800)
+            options = uc.ChromeOptions()
+            options.add_argument("--disable-blink-features=AutomationControlled")
+            options.add_argument("--no-sandbox")
+            options.add_argument("--disable-gpu")
+            options.add_argument("--window-size=1920,1080")
+            options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+
+            driver = uc.Chrome(use_subprocess=True, options=options)
+            driver.set_window_size(1920, 1080)
             
             wait = WebDriverWait(driver, 20)
             
@@ -45,6 +52,13 @@ class TolinoUploader:
             self.logger.info(f"Navigating to {self.login_url}")
             driver.get(self.login_url)
             
+            # Detect Cloudflare Block
+            page_text = driver.find_element(By.TAG_NAME, "body").text
+            if "Zugriff wurde geblockt" in page_text or "Ray ID" in page_text:
+                self.logger.error("ACCESS DENIED: The browser has been blocked by the site's WAF (Cloudflare).")
+                self.take_screenshot(driver, "waf_blocked")
+                return False
+
             # Smart check for login state
             # Wait for either 'Deutschland' (not logged in) OR 'Library Menu' (logged in)
             is_logged_in = False
