@@ -129,9 +129,23 @@ class ZeitScraper:
                     pass_input.clear()
                     pass_input.send_keys(self.password)
                     
-                    # Submit
-                    login_btn = driver.find_element(By.CSS_SELECTOR, "#kc-login")
-                    login_btn.click()
+                    # Submit Strategy 1: Enter Key
+                    self.logger.info("Submitting via Enter key...")
+                    pass_input.send_keys(Keys.RETURN)
+                    time.sleep(2)
+                    
+                    # Submit Strategy 2: Click Button (if still present)
+                    if len(driver.find_elements(By.CSS_SELECTOR, "#kc-login")) > 0:
+                        self.logger.info("Login form still present. Trying button click...")
+                        login_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#kc-login")))
+                        login_btn.click()
+                        time.sleep(1)
+                        
+                        # Submit Strategy 3: JS Click (if STILL present)
+                        if len(driver.find_elements(By.CSS_SELECTOR, "#kc-login")) > 0:
+                            self.logger.info("Login form still present. Trying JS click...")
+                            driver.execute_script("arguments[0].click();", login_btn)
+
                     self.logger.info("Credentials submitted.")
 
                     # Strict Login Verification
