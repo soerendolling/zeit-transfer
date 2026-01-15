@@ -2,8 +2,8 @@ name: Daily Zeit Transfer
 
 on:
   schedule:
-    # Run at 06:00 UTC every day
-    - cron: '0 6 * * *'
+    # Run at 06:00 UTC and 18:00 UTC (19:00 CET) every day
+    - cron: '0 6,18 * * *'
   workflow_dispatch:
 
 permissions:
