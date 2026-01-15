@@ -128,7 +128,23 @@ class TolinoUploader:
                     pass_input.click()
                     pass_input.clear()
                     pass_input.send_keys(self.password)
+                    
+                    # Submit Strategy 1: Enter Key
+                    self.logger.info("Submitting Tolino login via Enter key...")
                     pass_input.send_keys(Keys.RETURN)
+                    time.sleep(2)
+                    
+                    # Submit Strategy 2: Click Button (if 'Anmelden' button is visible)
+                    # Note: Tolino/Thalia login usually autoruns on Enter, but we look for a submit button just in case
+                    try:
+                         submit_btn = driver.find_element(By.CSS_SELECTOR, "button[type='submit'], input[type='submit'], .btn-primary")
+                         if submit_btn.is_displayed():
+                             self.logger.info("Submit button found. Clicking...")
+                             submit_btn.click()
+                             time.sleep(1)
+                    except:
+                        pass
+                        
                     self.logger.info("Credentials submitted.")
                     
                     # 4. Verify Success
