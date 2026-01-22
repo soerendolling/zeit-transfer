@@ -52,6 +52,20 @@ class ZeitScraper:
         except:
             pass
 
+    def get_chrome_version(self):
+        try:
+            import subprocess
+            import re
+            # Common paths for Linux/GitHub Actions
+            result = subprocess.run(['google-chrome', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            output = result.stdout
+            match = re.search(r'Chrome (\d+)', output)
+            if match:
+                return int(match.group(1))
+        except Exception as e:
+            self.logger.warning(f"Could not detect Chrome version: {e}")
+        return None
+
     def download_latest_issue(self):
         """
         Logs in to Die Zeit and downloads the latest EPUB issue using Selenium.
@@ -79,7 +93,14 @@ class ZeitScraper:
             options.add_experimental_option("prefs", prefs)
             
             # Initialize Driver
-            driver = uc.Chrome(use_subprocess=True, options=options)
+            version_main = self.get_chrome_version()
+            if version_main:
+                self.logger.info(f"Detected Chrome Version: {version_main}. Forcing compatible driver.")
+                driver = uc.Chrome(use_subprocess=True, options=options, version_main=version_main)
+            else:
+                self.logger.warning("Could not detect Chrome version. Letting undetected_chromedriver decide.")
+                driver = uc.Chrome(use_subprocess=True, options=options)
+                
             driver.set_window_size(1920, 1080)
             
             wait = WebDriverWait(driver, 20)

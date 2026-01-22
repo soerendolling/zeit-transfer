@@ -22,6 +22,19 @@ class TolinoUploader:
         except Exception as e:
             self.logger.warning(f"Failed to take screenshot: {e}")
 
+    def get_chrome_version(self):
+        try:
+            import subprocess
+            import re
+            result = subprocess.run(['google-chrome', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            output = result.stdout
+            match = re.search(r'Chrome (\d+)', output)
+            if match:
+                return int(match.group(1))
+        except:
+            pass
+        return None
+
     def upload_epub(self, file_path):
         """
         Logs in to Tolino Webreader using Selenium and uploads the EPUB file via the 'My Books' overflow menu.
@@ -43,7 +56,12 @@ class TolinoUploader:
             options.add_argument("--window-size=1920,1080")
             options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-            driver = uc.Chrome(use_subprocess=True, options=options)
+            version_main = self.get_chrome_version()
+            if version_main:
+                 driver = uc.Chrome(use_subprocess=True, options=options, version_main=version_main)
+            else:
+                 driver = uc.Chrome(use_subprocess=True, options=options)
+                 
             driver.set_window_size(1920, 1080)
             
             wait = WebDriverWait(driver, 20)
