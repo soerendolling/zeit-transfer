@@ -22,11 +22,14 @@ class TolinoUploader:
         except Exception as e:
             self.logger.warning(f"Failed to take screenshot: {e}")
 
-    def get_chrome_version(self):
+    def get_chrome_version(self, chrome_bin=None):
         try:
             import subprocess
             import re
-            result = subprocess.run(['google-chrome', '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            # Read the version of the exact binary we will launch (chrome_bin),
+            # falling back to 'google-chrome' on PATH for local runs.
+            executable = chrome_bin or 'google-chrome'
+            result = subprocess.run([executable, '--version'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             output = result.stdout
             match = re.search(r'Chrome (\d+)', output)
             if match:
@@ -56,11 +59,24 @@ class TolinoUploader:
             options.add_argument("--window-size=1920,1080")
             options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
-            version_main = self.get_chrome_version()
+            # Use the Chrome + ChromeDriver paths provided by the CI workflow so that
+            # the launched browser and the driver always come from the same matched pair.
+            chrome_bin = os.environ.get("CHROME_BIN")
+            driver_bin = os.environ.get("CHROMEDRIVER_BIN")
+            version_main = self.get_chrome_version(chrome_bin)
+
+            kwargs = dict(use_subprocess=True, options=options)
+            if chrome_bin:
+                kwargs["browser_executable_path"] = chrome_bin
+            if driver_bin:
+                kwargs["driver_executable_path"] = driver_bin
             if version_main:
-                 driver = uc.Chrome(use_subprocess=True, options=options, version_main=version_main)
-            else:
-                 driver = uc.Chrome(use_subprocess=True, options=options)
+                kwargs["version_main"] = version_main
+
+            self.logger.info(
+                f"Starting Chrome (binary={chrome_bin or 'auto'}, driver={driver_bin or 'auto'}, version_main={version_main})"
+            )
+            driver = uc.Chrome(**kwargs)
                  
             driver.set_window_size(1920, 1080)
             

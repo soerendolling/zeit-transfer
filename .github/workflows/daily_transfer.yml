@@ -27,10 +27,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Install Chrome
+    - name: Set up Chrome + ChromeDriver
+      id: setup-chrome
+      uses: browser-actions/setup-chrome@v2
+      with:
+        # Installs a matched Chrome + ChromeDriver pair from a single source,
+        # avoiding the version mismatch between detected driver and launched browser.
+        chrome-version: stable
+        install-chromedriver: true
+        install-dependencies: true
+
+    - name: Install xvfb
       run: |
         sudo apt-get update
-        sudo apt-get install -y google-chrome-stable xvfb
+        sudo apt-get install -y xvfb
 
     - name: Run Transfer Script
       env:
@@ -40,6 +50,8 @@ jobs:
         ZEIT_DOWNLOAD_URL: ${{ secrets.ZEIT_DOWNLOAD_URL }}
         TOLINO_USER: ${{ secrets.TOLINO_USER }}
         TOLINO_PASSWORD: ${{ secrets.TOLINO_PASSWORD }}
+        CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
+        CHROMEDRIVER_BIN: ${{ steps.setup-chrome.outputs.chromedriver-path }}
       run: |
         xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" python -m src.main
 
