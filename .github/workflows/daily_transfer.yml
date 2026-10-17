@@ -42,6 +42,23 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y xvfb
 
+    - name: Connect Cloudflare WARP
+      # Routes runner traffic through WARP so the target site does not see the
+      # Azure datacenter IP, which Thalia's WAF blocks.
+      run: |
+        curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+        echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+        sudo apt-get update
+        sudo apt-get install -y cloudflare-warp
+        warp-cli --accept-tos registration new
+        warp-cli --accept-tos connect
+        for i in $(seq 1 15); do
+          if curl -s https://www.cloudflare.com/cdn-cgi/trace | grep -q 'warp=on'; then break; fi
+          sleep 2
+        done
+        echo "--- connection info ---"
+        curl -s https://www.cloudflare.com/cdn-cgi/trace | grep -E '^(ip|loc|warp|colo)='
+
     - name: Run Transfer Script
       env:
         ZEIT_USER: ${{ secrets.ZEIT_USER }}

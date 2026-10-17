@@ -200,7 +200,7 @@ class TolinoUploader:
                     except:
                         page_text = ""
                     if "Zugriff wurde geblockt" in page_text or "Ray ID" in page_text:
-                        self.logger.error("ACCESS DENIED (WAF): Thalia blocked the login page.")
+                        self.logger.error(f"ACCESS DENIED (WAF): Thalia blocked the login page at {driver.current_url}")
                         self.take_screenshot(driver, "waf_blocked")
                         return False
                     self.logger.error(f"Login Failure: {e}")
