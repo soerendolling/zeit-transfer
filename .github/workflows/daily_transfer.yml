@@ -52,6 +52,7 @@ jobs:
         TOLINO_PASSWORD: ${{ secrets.TOLINO_PASSWORD }}
         CHROME_BIN: ${{ steps.setup-chrome.outputs.chrome-path }}
         CHROMEDRIVER_BIN: ${{ steps.setup-chrome.outputs.chromedriver-path }}
+        TZ: Europe/Berlin
       run: |
         xvfb-run --auto-servernum --server-args="-screen 0 1280x1024x24" python -m src.main
 

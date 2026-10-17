@@ -57,7 +57,8 @@ class TolinoUploader:
             options.add_argument("--no-sandbox")
             options.add_argument("--disable-gpu")
             options.add_argument("--window-size=1920,1080")
-            options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+            # No hardcoded user-agent: it must match the real Chrome version, otherwise the WAF flags us.
+            options.add_argument("--lang=de-DE")
 
             # Use the Chrome + ChromeDriver paths provided by the CI workflow so that
             # the launched browser and the driver always come from the same matched pair.
@@ -194,6 +195,14 @@ class TolinoUploader:
                     self.logger.info("Login verified.")
                     
                 except Exception as e:
+                    try:
+                        page_text = driver.find_element(By.TAG_NAME, "body").text
+                    except:
+                        page_text = ""
+                    if "Zugriff wurde geblockt" in page_text or "Ray ID" in page_text:
+                        self.logger.error("ACCESS DENIED (WAF): Thalia blocked the login page.")
+                        self.take_screenshot(driver, "waf_blocked")
+                        return False
                     self.logger.error(f"Login Failure: {e}")
                     self.take_screenshot(driver, "login_failed")
                     return False
