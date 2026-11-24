@@ -7,3 +7,4 @@ selenium
 selenium-stealth
 webdriver-manager
 undetected-chromedriver
+setuptools
