@@ -4,6 +4,9 @@ on:
   schedule:
     # Run at 06:00 UTC and 18:00 UTC (19:00 CET) every day
     - cron: '0 6,18 * * *'
+    # Extra run on Wednesday 21:00 UTC (22:00 CET): new issue day, EPUB is
+    # often released late and GitHub delays scheduled runs by up to hours.
+    - cron: '0 21 * * 3'
   workflow_dispatch:
 
 permissions:

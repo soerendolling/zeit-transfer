@@ -270,19 +270,28 @@ class ZeitScraper:
             # --- Find EPUB Download ---
             self.logger.info("Looking for 'EPUB FÜR E-READER LADEN'...")
             
+            lower_text = "translate(normalize-space(text()), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz')"
+
+            # 0. Placeholder check: ZEIT shows "EPUB FOLGT IN KÜRZE ..." on
+            #    publication day before the EPUB is released. Clicking it does
+            #    nothing, so treat it as "not yet available" instead of failing.
+            xpath_pending = f"//*[contains({lower_text}, 'epub folgt')]"
+            if driver.find_elements(By.XPATH, xpath_pending):
+                self.logger.info("EPUB not yet available ('EPUB FOLGT IN KÜRZE'). Will retry on next run.")
+                return "EPUB_PENDING"
+
             try:
-                # 1. Simple Text Search "EPUB" (Fastest)
-                xpath_text = "//*[contains(text(), 'EPUB')]"
-                
+                # 1. Exact button text (case-insensitive)
+                xpath_text = f"//*[contains({lower_text}, 'epub für e-reader laden')]"
                 epub_link = wait.until(EC.element_to_be_clickable((By.XPATH, xpath_text)))
-                self.logger.info("Found EPUB link via text. Clicking...")
+                self.logger.info("Found 'EPUB FÜR E-READER LADEN' link. Clicking...")
                 epub_link.click()
-                
+
             except:
-                self.logger.warning("Simple 'EPUB' text link not found. Trying specific text...")
+                self.logger.warning("Specific EPUB link not found. Trying generic 'EPUB' text...")
                 try:
-                    # 2. Specific Backup if "EPUB" is too generic (unlikely)
-                    xpath_text = "//*[contains(translate(text(), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'epub für e-reader laden')]"
+                    # 2. Generic fallback, excluding the placeholder button
+                    xpath_text = f"//*[contains(text(), 'EPUB') and not(contains({lower_text}, 'folgt'))]"
                     epub_link = driver.find_element(By.XPATH, xpath_text)
                     epub_link.click()
                 except:

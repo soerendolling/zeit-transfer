@@ -64,6 +64,10 @@ def main():
             logger.info("Scraper reported no new issue. Exiting.")
             return # Success exit for skipped
 
+        if epub_path == "EPUB_PENDING":
+            logger.info("New issue found but EPUB not yet published. Exiting, will retry on next run.")
+            return # Success exit, history untouched so next run retries
+
         if not epub_path:
             logger.error("Download failed.")
             sys.exit(1) # Fail exit
